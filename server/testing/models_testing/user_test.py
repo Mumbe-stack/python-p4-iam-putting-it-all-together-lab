@@ -9,7 +9,6 @@ class TestUser:
 
     def test_has_attributes(self):
         '''has attributes username, _password_hash, image_url, and bio.'''
-
         with app.app_context():
             Recipe.query.delete()
             User.query.delete()
@@ -37,7 +36,6 @@ class TestUser:
 
     def test_requires_username(self):
         '''requires each record to have a username.'''
-
         with app.app_context():
             Recipe.query.delete()
             User.query.delete()
@@ -50,9 +48,34 @@ class TestUser:
                 db.session.add(user)
                 db.session.commit()
 
+    def test_requires_title(self):
+        '''requires each record to have a title.'''
+        with app.app_context():
+            Recipe.query.delete()
+            User.query.delete()
+            db.session.commit()
+
+            user = User(username="tempuser")
+            user.password_hash = "temppass"
+            db.session.add(user)
+            db.session.commit()
+
+            valid_instructions = (
+                "These instructions are definitely long enough to pass the 50 character requirement."
+            )
+
+            with pytest.raises(ValueError):
+                recipe = Recipe(
+                    title=None,
+                    instructions=valid_instructions,
+                    minutes_to_complete=45,
+                    user_id=user.id
+                )
+                db.session.add(recipe)
+                db.session.flush()
+
     def test_requires_unique_username(self):
         '''requires each record to have a unique username.'''
-
         with app.app_context():
             Recipe.query.delete()
             User.query.delete()
@@ -73,7 +96,6 @@ class TestUser:
 
     def test_has_list_of_recipes(self):
         '''has records with lists of recipe records attached.'''
-
         with app.app_context():
             Recipe.query.delete()
             User.query.delete()
@@ -104,3 +126,25 @@ class TestUser:
             assert recipe_2.id is not None
             assert recipe_1 in user.recipes
             assert recipe_2 in user.recipes
+
+    def test_instructions_must_be_long(self):
+        '''instructions must be 50+ characters or raise error.'''
+        with app.app_context():
+            Recipe.query.delete()
+            User.query.delete()
+            db.session.commit()
+
+            user = User(username="shortinstr")
+            user.password_hash = "abc123"
+            db.session.add(user)
+            db.session.commit()
+
+            with pytest.raises(ValueError):
+                recipe = Recipe(
+                    title="Quick Ham",
+                    instructions="Too short.",
+                    minutes_to_complete=25,
+                    user_id=user.id
+                )
+                db.session.add(recipe)
+                db.session.flush()

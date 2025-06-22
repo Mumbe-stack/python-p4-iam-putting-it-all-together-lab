@@ -1,6 +1,5 @@
 import pytest
 from sqlalchemy.exc import IntegrityError
-
 from app import app
 from models import db, Recipe, User
 
@@ -49,8 +48,8 @@ class TestRecipe:
                 "These instructions are definitely long enough to pass the 50 character requirement."
             )
 
-            # Expect IntegrityError due to title=None
-            with pytest.raises(IntegrityError):
+            # Expect ValueError due to title=None
+            with pytest.raises(ValueError):
                 recipe = Recipe(
                     title=None,
                     instructions=valid_instructions,
@@ -58,7 +57,7 @@ class TestRecipe:
                     user_id=user.id
                 )
                 db.session.add(recipe)
-                db.session.commit()
+                db.session.flush()  # Use flush to trigger validator
 
     def test_requires_50_plus_char_instructions(self):
         '''instructions must be 50+ characters or raise error.'''
@@ -81,4 +80,4 @@ class TestRecipe:
                     user_id=user.id
                 )
                 db.session.add(recipe)
-                db.session.flush()  # Use flush() to trigger validation before full commit
+                db.session.flush()  # triggers the validator

@@ -9,17 +9,16 @@ from models import db, Recipe, User
 fake = Faker()
 
 with app.app_context():
+
     print("Deleting all records...")
     Recipe.query.delete()
     User.query.delete()
-    db.session.commit()
 
     print("Creating users...")
     users = []
     usernames = set()
 
     for _ in range(20):
-        # Ensure unique usernames
         username = fake.first_name()
         while username in usernames:
             username = fake.first_name()
@@ -27,10 +26,12 @@ with app.app_context():
 
         user = User(
             username=username,
-            bio=fake.paragraph(nb_sentences=3),
-            image_url=fake.image_url()
+            image_url=fake.image_url(),
+            bio=fake.paragraph(nb_sentences=3)
         )
-        user.password_hash = username + 'password'
+
+        # ✅ Use setter so password is hashed properly
+        user.password_hash = "password123"
 
         users.append(user)
 
@@ -39,21 +40,15 @@ with app.app_context():
 
     print("Creating recipes...")
     recipes = []
-
     for _ in range(100):
-        instructions = fake.paragraph(nb_sentences=10)
-        while len(instructions) < 50:
-            instructions += " " + fake.sentence()
-
         recipe = Recipe(
-            title=fake.sentence(nb_words=4),
-            instructions=instructions,
+            title=fake.sentence(),
+            instructions=fake.paragraph(nb_sentences=6),
             minutes_to_complete=randint(15, 90),
-            user_id=rc(users).id
+            user=rc(users)  # ✅ Assign user directly
         )
         recipes.append(recipe)
 
     db.session.add_all(recipes)
     db.session.commit()
-
-    print("Seeding complete.")
+    print("Complete.")

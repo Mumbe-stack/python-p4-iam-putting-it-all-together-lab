@@ -69,7 +69,7 @@ class RecipeIndex(Resource):
             return {"error": "Unauthorized"}, 401
 
         recipes = Recipe.query.all()
-        return [r.to_dict() for r in recipes], 200
+        return [recipe.to_dict() for recipe in recipes], 200
 
     def post(self):
         user_id = session.get('user_id')
@@ -77,21 +77,38 @@ class RecipeIndex(Resource):
             return {"error": "Unauthorized"}, 401
 
         data = request.get_json()
+        title = data.get('title')
+        instructions = data.get('instructions')
+        minutes = data.get('minutes_to_complete')
+
+        # Collect validation errors
+        errors = []
+        if not title or title.strip() == "":
+            errors.append("Title is required.")
+        if not instructions or len(instructions.strip()) < 50:
+            errors.append("Instructions must be at least 50 characters long.")
+        if minutes is None:
+            errors.append("Minutes to complete is required.")
+
+        # Return 422 if any field is invalid
+        if errors:
+            return {"errors": errors}, 422
+
         try:
             recipe = Recipe(
-                title=data.get('title'),
-                instructions=data.get('instructions'),
-                minutes_to_complete=data.get('minutes_to_complete'),
+                title=title.strip(),
+                instructions=instructions.strip(),
+                minutes_to_complete=minutes,
                 user_id=user_id
             )
             db.session.add(recipe)
             db.session.commit()
 
             return recipe.to_dict(), 201
+
         except Exception as e:
             db.session.rollback()
-            return {"errors": [str(e)]}, 422
-
+            return {"errors": ["An unexpected error occurred."]}, 422
 
 # Register resources
 api.add_resource(Signup, '/signup', endpoint='signup')
